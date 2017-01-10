@@ -28,34 +28,37 @@ actions.precombat+=/marked_for_death,if=raid_event.adds.in>40
 actions.precombat+=/roll_the_bones,if=!talent.slice_and_dice.enabled
 
 # Executed every time the actor is available.
-# Fish for '3 Buffs' or 'True Bearing'. With SnD, consider that we never have to reroll.
+# Fish '2 Buffs including True Bearing'. With SnD, consider that we never have to reroll.
 actions=variable,name=rtb_reroll,value=!talent.slice_and_dice.enabled&(rtb_buffs<=1|(rtb_buffs=2&!buff.true_bearing.up))
-# Condition to use Saber Slash when not rerolling RtB or when using SnD
-actions+=/variable,name=ss_useable_noreroll,value=(combo_points<5+talent.deeper_stratagem.enabled-(buff.broadsides.up|buff.jolly_roger.up)-(talent.alacrity.enabled&buff.alacrity.stack<=4))
-# Condition to use Saber Slash, when you have RtB or not
-actions+=/variable,name=ss_useable,value=(talent.anticipation.enabled&combo_points<4)|(!talent.anticipation.enabled&((variable.rtb_reroll&combo_points<4+talent.deeper_stratagem.enabled)|(!variable.rtb_reroll&variable.ss_useable_noreroll)))
+# Condition to use a finisher
+actions+=/variable,name=exec,value=(combo_points>=(4+talent.deeper_stratagem.enabled))
+
 # Normal rotation
 actions+=/call_action_list,name=bf
 actions+=/call_action_list,name=cds
 # Conditions are here to avoid worthless check if nothing is available
 actions+=/call_action_list,name=stealth,if=stealthed.rogue|cooldown.vanish.up|cooldown.shadowmeld.up
-actions+=/death_from_above,if=energy.time_to_max>2&!variable.ss_useable_noreroll
-actions+=/slice_and_dice,if=!variable.ss_useable&buff.slice_and_dice.remains<target.time_to_die&buff.slice_and_dice.remains<(1+combo_points)*1.8
-actions+=/roll_the_bones,if=!variable.ss_useable&buff.roll_the_bones.remains<target.time_to_die&(buff.roll_the_bones.remains<=3|variable.rtb_reroll)
+actions+=/call_action_list,name=exec,if=variable.exec
 actions+=/killing_spree,if=energy.time_to_max>5|energy<15
 actions+=/call_action_list,name=build
-actions+=/call_action_list,name=finish,if=!variable.ss_useable
-# Gouge is used as a CP Generator while nothing else is available and you have Dirty Tricks talent. It's unlikely that you'll be able to do this optimally in-game since it requires to move in front of the target, but it's here so you can quantifiy its value.
-actions+=/gouge,if=talent.dirty_tricks.enabled&combo_points.deficit>=1
 
 # Blade Flurry
 actions.bf=cancel_buff,name=blade_flurry,if=equipped.shivarran_symmetry&cooldown.blade_flurry.up&buff.blade_flurry.up&spell_targets.blade_flurry>=2|spell_targets.blade_flurry<2&buff.blade_flurry.up
 actions.bf+=/blade_flurry,if=spell_targets.blade_flurry>=2&!buff.blade_flurry.up
 
+# Finishers
+actions.exec=death_from_above,if=energy.time_to_max>2
+actions.exec+=/slice_and_dice,if=buff.slice_and_dice.remains<target.time_to_die&buff.slice_and_dice.remains<(1+combo_points)*1.8
+actions.exec+=/roll_the_bones,if=buff.roll_the_bones.remains<target.time_to_die&(buff.roll_the_bones.remains<=3|variable.rtb_reroll)
+actions.exec+=/between_the_eyes,if=equipped.greenskins_waterlogged_wristcuffs&!buff.greenskins_waterlogged_wristcuffs.up
+actions.exec+=/run_through,if=!talent.death_from_above.enabled|energy.time_to_max<cooldown.death_from_above.remains+3.5
+
 # Builders
 actions.build=ghostly_strike,if=combo_points.deficit>=1+buff.broadsides.up&!buff.curse_of_the_dreadblades.up&(debuff.ghostly_strike.remains<debuff.ghostly_strike.duration*0.3|(cooldown.curse_of_the_dreadblades.remains<3&debuff.ghostly_strike.remains<14))&(combo_points>=3|(variable.rtb_reroll&time>=10))
 actions.build+=/pistol_shot,if=combo_points.deficit>=1+buff.broadsides.up&buff.opportunity.up&(energy.time_to_max>2-talent.quick_draw.enabled|(buff.blunderbuss.up&buff.greenskins_waterlogged_wristcuffs.up))
-actions.build+=/saber_slash,if=variable.ss_useable
+actions.build+=/saber_slash
+# Gouge is used as a CP Generator while nothing else is available and you have Dirty Tricks talent. It's unlikely that you'll be able to do this optimally in-game since it requires to move in front of the target, but it's here so you can quantifiy its value.
+actions.build+=/gouge,if=talent.dirty_tricks.enabled&combo_points.deficit>=1
 
 # Cooldowns
 actions.cds=potion,name=old_war,if=buff.bloodlust.react|target.time_to_die<=25|buff.adrenaline_rush.up
@@ -65,12 +68,8 @@ actions.cds+=/arcane_torrent,if=energy.deficit>40
 actions.cds+=/cannonball_barrage,if=spell_targets.cannonball_barrage>=1
 actions.cds+=/adrenaline_rush,if=!buff.adrenaline_rush.up&energy.deficit>0
 actions.cds+=/marked_for_death,target_if=min:target.time_to_die,if=target.time_to_die<combo_points.deficit|((raid_event.adds.in>40|buff.true_bearing.remains>15)&combo_points.deficit>=4+talent.deeper_strategem.enabled+talent.anticipation.enabled)
-actions.cds+=/sprint,if=equipped.thraxis_tricksy_treads&!variable.ss_useable
+actions.cds+=/sprint,if=equipped.thraxis_tricksy_treads&variable.exec
 actions.cds+=/curse_of_the_dreadblades,if=combo_points.deficit>=4&(!talent.ghostly_strike.enabled|debuff.ghostly_strike.up)
-
-# Finishers
-actions.finish=between_the_eyes,if=equipped.greenskins_waterlogged_wristcuffs&!buff.greenskins_waterlogged_wristcuffs.up
-actions.finish+=/run_through,if=!talent.death_from_above.enabled|energy.time_to_max<cooldown.death_from_above.remains+3.5
 
 # Stealth
 # Condition to use stealth abilities
